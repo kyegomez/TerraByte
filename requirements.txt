@@ -2,3 +2,5 @@ torchvision
 torch
 einops
 beartype
+zetascale
+

@@ -686,3 +686,50 @@ class IMUPreprocessor(VerboseNNModule):
     
         
 
+from PIL import Image
+import io
+import cv2
+
+import numpy as np
+from pydub import AudioSegment
+
+class ImageToByte:
+    def __init__(self, format="JPEG"):
+        self.format = format
+
+    def convert(self, image_path):
+        with Image.open(image_path) as img:
+            byte_arr = io.BytesIO
+            img.save(byte_arr, format=self.format)
+            return byte_arr.getvalue()
+        
+class VideoToByte:
+    def convert(self, video_path):
+        #use opencv to read the video
+        vidcap = cv2.VideoCapture(video_path)
+        success, image = vidcap.read()
+
+        video_bytes = []
+        while success:
+            #convert each frame to bytes
+            is_success, buffer = cv2.imencode('.jp', image)
+            video_bytes.append(buffer.tobytes())
+            success, image = vidcap.read()
+
+        return video_bytes
+    
+class AudioToByte:
+    def convert(self, audio_path):
+        audio = AudioSegment.from_file(audio_path)
+        return audio.raw_data
+    
+
+
+image_to_byte = ImageToByte()
+image_bytes = image_to_byte.convert("path_to_your_image.jpg")
+
+audio_to_byte = AudioToByte()
+audio_bytes = audio_to_byte.convert("path_to_your_audio.mp3")
+
+video_to_byte = VideoToByte()
+video_bytes = video_to_byte.convert("path_to_your_video.mp4")

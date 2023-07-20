@@ -1,4 +1,4 @@
-from TerraByte import MEGABYTE
+from TerraByte.model.model import DilatedMegabyte
 
 import random
 import tqdm
@@ -68,7 +68,7 @@ class MultiModalDataset(Dataset):
 
 # instantiate GPT-like decoder model
 
-model = MEGABYTE(
+model = DilatedMegabyte(
     num_tokens = 256,
     dim = (768, 512, 256),
     depth = (6, 4, 2),

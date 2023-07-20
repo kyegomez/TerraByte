@@ -1,2 +1,2 @@
 from TerraByte.model.megabyte import MEGABYTE
-from TerraByte.model.megabyte import DilatedMegabyte
+from TerraByte.model.megabyte import TerraByte

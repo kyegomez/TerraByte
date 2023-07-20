@@ -1,7 +1,7 @@
 import torch
-from TerraByte import DilatedMegabyte
+from TerraByte import TerraByte
 
-model = DilatedMegabyte(
+model = TerraByte(
     num_tokens = 16000,
     dim = (512, 256),   
     dim_head=64,

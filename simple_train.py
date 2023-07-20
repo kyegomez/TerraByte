@@ -1,4 +1,4 @@
-from TerraByte.model.model import DilatedMegabyte
+from TerraByte.model.model import TerraByte
 
 import random
 import tqdm
@@ -35,7 +35,7 @@ def decode_tokens(tokens):
 
 # instantiate GPT-like decoder model
 
-model = DilatedMegabyte(
+model = TerraByte(
     num_tokens = 256,
     dim = (768, 512, 256),
     depth = (6, 4, 2),

@@ -808,7 +808,7 @@ class MEGABYTE(nn.Module):
 
         return loss
 
-class DilatedMegabyte(nn.Module):
+class TerraByte(nn.Module):
 
     @beartype
     def __init__(

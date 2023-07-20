@@ -1,4 +1,4 @@
-from TerraByte.model.megabyte import DilatedMegabyte
+from TerraByte.model.megabyte import TerraByte
 import torch
 
 
@@ -13,7 +13,7 @@ class TerraByte:
                 dim_head = 64,           
                 heads = 8,  
                  ):
-        self.model = DilatedMegabyte(
+        self.model = TerraByte(
             num_tokens=num_tokens,
             dim=dim,
             max_seq_len=max_seq_len,

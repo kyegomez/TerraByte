@@ -20,7 +20,7 @@ from torch import Tensor
 from typing import Tuple, Union
 from einops import rearrange, repeat
 
-from zeta import DilatedAttention2
+from zeta import DilatedAttention
 
 
 # helpers
@@ -240,15 +240,15 @@ class DilatedTransformer(nn.Module):
         for _ in range(layers):
             self.layers.append(nn.ModuleList([
                 #swap for dilated attention
-                DilatedAttention2(
-                d_model= dim,
-                num_heads=heads, 
-                dilation_rate=dilation_rate,
-                segment_size=segment_size,
-                dropout=attn_dropout,
-                casual=False,
-                use_xpos=use_xpos,
-                use_rel_pos_bias=use_rel_pos_bias
+                DilatedAttention(
+                    d_model= dim,
+                    num_heads=heads, 
+                    dilation_rate=dilation_rate,
+                    segment_size=segment_size,
+                    dropout=attn_dropout,
+                    casual=False,
+                    use_xpos=use_xpos,
+                    use_rel_pos_bias=use_rel_pos_bias
                 ),
                 FeedForward(dim = dim, mult = ff_mult, dropout = ff_dropout)
             ]))
@@ -318,10 +318,10 @@ class PatchEmbeddings(nn.Module):
     def __init__(self, dim_in, dim_out, seq_len):
         super().__init__()
         self.embedding = nn.Sequential(
-            Rearrange('... rd -> ... (r d)')
+            Rearrange('... rd -> ... (r d)'),
             nn.LayerNorm(seq_len * dim_in),
-            nn.Linear(seq_Len * dim_in, dim_out),
-            nn.LayerNorm(dim_out)
+            nn.Linear(seq_len * dim_in, dim_out),
+            nn.LayerNorm(dim_out),
         )
     
     def forward(self, x):

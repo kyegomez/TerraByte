@@ -8,6 +8,9 @@ import torch.nn.functional as F
 
 from einops import rearrange
 
+
+from TerraByte.model.flash import FlashAttention
+
 # constants
 
 
@@ -36,9 +39,16 @@ print_once = once(print)
 class Attend(nn.Module):
     def __init__(
         self,
+        dim,
+        heads=64,
+        dim_head=64,
         causal = False,
         dropout = 0.,
-        flash = False
+        flash = False,
+        q_bucket_size=512,
+        k_bucket_size=1024,
+        parallel=False,
+        mixed_precision=False
     ):
         super().__init__()
         self.dropout = dropout
@@ -48,8 +58,19 @@ class Attend(nn.Module):
         self.flash = flash
         assert not (flash and version.parse(torch.__version__) < version.parse('2.0.0')), 'in order to use flash attention, you must be using pytorch 2.0 or above'
 
-        # determine efficient attention configs for cuda and cpu
+        if self.flash:
+            self.flash_attention = FlashAttention(
+                dim=dim,
+                heads=heads,
+                dim_head=dim_head,
+                causal=causal,
+                q_bucket_size=q_bucket_size,
+                k_bucket_size=k_bucket_size,
+                parallel=parallel,
+                mixed_precision=mixed_precision
+            )
 
+        # determine efficient attention configs for cuda and cpu
         self.cpu_config = EfficientAttentionConfig(True, True, True)
         self.cuda_config = None
 
@@ -65,57 +86,10 @@ class Attend(nn.Module):
             print_once('Non-A100 GPU detected, using math or mem efficient attention if input tensor is on cuda')
             self.cuda_config = EfficientAttentionConfig(False, True, True)
 
+
     def get_mask(self, i, j, device):
         return torch.ones((i, j), device=device, dtype=torch.bool).triu(j - i + 1)
 
-    def flash_attn(self, q, k, v, mask = None, attn_bias = None):
-        _, heads, q_len, _, k_len, is_cuda, device = *q.shape, k.shape[-2], q.is_cuda, q.device
-
-        # single headed key / values
-
-        if k.ndim == 3:
-            k = rearrange(k, 'b n d -> b 1 n d')
-
-        if v.ndim == 3:
-            v = rearrange(v, 'b n d -> b 1 n d')
-
-        # Check if mask exists and expand to compatible shape
-        # The mask is B L, so it would have to be expanded to B H N L
-
-        if exists(mask) and mask.ndim != 4:
-            mask = rearrange(mask, 'b j -> b 1 1 j')
-            mask = mask.expand(-1, heads, q_len, -1)
-
-        # Check if there is a compatible device for flash attention
-
-        config = self.cuda_config if is_cuda else self.cpu_config
-
-        causal = self.causal
-
-        # handle attention bias
-
-        if exists(attn_bias):
-            mask_value = -torch.finfo(q.dtype).max // 2
-            causal_mask = self.get_mask(q_len, k_len, device)
-            attn_bias = attn_bias.masked_fill(causal_mask, mask_value)
-
-            if exists(mask):
-                attn_bias = attn_bias.masked_fill(~mask, mask_value)
-
-            mask = attn_bias
-            causal = False
-
-        # pytorch 2.0 flash attn: q, k, v, mask, dropout, causal, softmax_scale
-
-        with torch.backends.cuda.sdp_kernel(**config._asdict()):
-            out = F.scaled_dot_product_attention(
-                q, k, v,
-                attn_mask = mask,
-                dropout_p = self.dropout if self.training else 0., 
-                is_causal = causal
-            )
-
-        return out
 
     def forward(self, q, k, v, mask = None, attn_bias = None):
         """
@@ -133,7 +107,7 @@ class Attend(nn.Module):
         kv_einsum_eq = 'b j d' if k.ndim == 3 else 'b h j d'
 
         if self.flash:
-            return self.flash_attn(q, k, v, mask = mask, attn_bias = attn_bias)
+            return self.flash_attn(q, k, v, mask = mask)
 
         # similarity
 

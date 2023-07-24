@@ -37,8 +37,7 @@ from transformers import (AutoTokenizer, default_data_collator,
                           get_linear_schedule_with_warmup, set_seed)
 
 from TerraByte.utils import StableAdamWUnfused
-from TerraByte.model import TerraByte
-
+from TerraByte.model import Transformer, TerraByte
 
 import bitsandbytes as bnb
 
@@ -96,7 +95,7 @@ def activation_checkpointing(
     """
     if accelerator is not None:
         accelerator.print(f"Using activation checkpointing")
-    check_fn = lambda submodule: isinstance(submodule, TransformerWrapper)
+    check_fn = lambda submodule: isinstance(submodule, Transformer)
     non_reentrant_wrapper = partial(
         checkpoint_wrapper,
         offload_to_cpu=offload_to_cpu,
@@ -136,7 +135,7 @@ def fsdp(
         TerraByte_auto_wrap_policy = partial(
             transformer_auto_wrap_policy,
             transformer_layer_cls={
-                TransformerWrapper,
+                Transformer,
             },
         )
     else:
@@ -648,15 +647,15 @@ def Train():
 
 
 def main():
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '9994'
+    os.environ['MASTER_ADDR'] #= 'localhost'
+    os.environ['MASTER_PORT'] #= '9994'
     
     # # [CRITICAL] Pay attention to this when scaling to multiple GPUs and clusters
     
     # # Pay attention to this, use "accelerate config"
 
-    os.environ['RANK']       = str(0) # Number of nodes (servers)
-    os.environ['WORLD_SIZE'] = str(torch.cuda.device_count())
+    os.environ['RANK']       #= str(0) # Number of nodes (servers)
+    os.environ['WORLD_SIZE'] #= str(torch.cuda.device_count())
 
     torch.distributed.init_process_group()
     

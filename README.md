@@ -117,3 +117,8 @@ $ python train.py
     url       = {https://doi.org/10.5281/zenodo.5196578}
 }
 ```
+
+
+# Todo:
+
+* Implement Optimus prime stacked attention with flash attention 2.0

@@ -752,7 +752,6 @@ class MEGABYTE(nn.Module):
         return loss
 
 class TerraByte(nn.Module):
-
     @beartype
     def __init__(
         self,

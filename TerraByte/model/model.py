@@ -779,7 +779,7 @@ class TerraByte(nn.Module):
                 attn_dropout = attn_dropout,
                 ff_dropout = ff_dropout,
                 ff_mult = ff_mult,
-                rel_pos = rel_pos_bias,
+                rel_pos_bias = rel_pos_bias, 
                 flash_attn = flash_attn
             ))
 

@@ -1,4 +1,4 @@
-from TerraByte.model import TerraByte
+from TerraByte import TerraByte
 
 import random
 import tqdm

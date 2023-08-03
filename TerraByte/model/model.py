@@ -747,7 +747,7 @@ class TerraByte(nn.Module):
 
         self.max_seq_len = max_seq_len
 
-        self.start_tokens = nn.ParameterList([nn.Parameter(torch.randn(h_dim)) for h_dim, seq_len in zip(dim, max_seq_len)])
+        self.start_tokens = nn.ParameterList([nn.Parameter(torch.randn(h_dim)) for h_dim, seq_len in zip(dim, max_seq_len)])  # noqa: E501
         self.pos_embs = nn.ModuleList([nn.Embedding(seq_len, h_dim) for h_dim, seq_len in zip(dim, max_seq_len)]) if pos_emb else None
 
         self.token_embs = nn.ModuleList([])

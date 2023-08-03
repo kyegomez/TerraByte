@@ -476,7 +476,7 @@ class OmniMEGABYTE(nn.Module):
 
 
 #regular megabyte no universal patch embedder
-class MEGABYTE(nn.Module):
+class Megabyte(nn.Module):
 
     @beartype
     def __init__(

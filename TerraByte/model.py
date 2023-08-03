@@ -1,4 +1,4 @@
-from TerraByte.model.terrabyte import TerraByte
+from terrabyte.model.terrabyte import TerraByte
 import torch
 
 

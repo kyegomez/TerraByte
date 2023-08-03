@@ -210,9 +210,9 @@ class FlashAttention(nn.Module):
 
         inner_dim = heads * dim_head
 
-        self.to_q = nn.Linear(dim, inner_dim, bias = False)
-        self.to_kv = nn.Linear(dim, inner_dim * 2, bias = False)
-        self.to_out = nn.Linear(inner_dim, dim, bias = False)
+        self.to_q = nn.Linear(dim, inner_dim, bias)
+        self.to_kv = nn.Linear(dim, inner_dim * 2, bias)
+        self.to_out = nn.Linear(inner_dim, dim, bias)
 
         # memory efficient attention related parameters
         # can be overriden on forward

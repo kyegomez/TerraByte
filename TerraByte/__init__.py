@@ -1,2 +1,2 @@
-from terrabyte.model.terrabyte import MEGABYTE
-from terrabyte.model.terrabyte import TerraByte
+from terrabyte.model.model import MEGABYTE
+from terrabyte.model.model import TerraByte

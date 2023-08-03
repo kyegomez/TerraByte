@@ -199,7 +199,8 @@ class FlashAttention(nn.Module):
         q_bucket_size = 512,
         k_bucket_size = 1024,
         parallel = False,
-        mixed_precision = False
+        mixed_precision = False,
+        bias=None,
     ):
         super().__init__()
         self.heads = heads

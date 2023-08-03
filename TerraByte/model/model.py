@@ -222,7 +222,7 @@ class Transformer(nn.Module):
         attn_bias = self.alibi(n, n, device = x.device) if exists(self.alibi) else None
 
         for attn, ff in self.layers:
-            x = attn(token_shift(x), attn_bias = attn_bias) + x
+            x = attn(token_shift(x), bias = attn_bias) + x
             x = ff(token_shift(x)) + x
 
         return self.norm(x)
@@ -780,7 +780,7 @@ class TerraByte(nn.Module):
                 attn_dropout = attn_dropout,
                 ff_dropout = ff_dropout,
                 ff_mult = ff_mult,
-                rel_pos_bias = rel_pos_bias, 
+                # rel_pos_bias = rel_pos_bias, 
                 flash_attn = flash_attn
             ))
 

@@ -327,7 +327,15 @@ class Transformer(nn.Module):
 
         self.norm = RMSNorm(dim)
 
+    def forward(self, x):
+        n = x.shape[-2]
+        rotary_emb = self.rotary_emb(n) if exists(self.rotary_emb) else None
 
+        for attn, ff in self.layers:
+            x = attn(token_shift(x), rotary_emb = rotary_emb) + x
+            x = ff(token_shift(x)) + x
+
+        return self.norm(x)
 
 
 

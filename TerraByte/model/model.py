@@ -722,6 +722,7 @@ class TerraByte(nn.Module):
         ff_mult = 4,
         ff_dropout = 0.,
         pad_id = 0,
+        pos_emb=False,
         rel_pos_bias = True,
         dilation_rate = None,
         segment_size = None,

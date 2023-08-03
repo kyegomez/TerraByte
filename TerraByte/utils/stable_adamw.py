@@ -3,7 +3,6 @@ import torch
 
 # This is the unfused version of StableAdamW. It is slower than the fused version (coming).
 
-
 class StableAdamWUnfused(torch.optim.Optimizer):
     def __init__(
         self,

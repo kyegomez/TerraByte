@@ -1,1 +1,1 @@
-from terrabyte.model.model import Megabyte, TerraByte
+from TerraBytemodel.model import Megabyte, TerraByte

@@ -12,7 +12,7 @@ from einops.layers.torch import Rearrange
 from torch import Tensor, nn
 from tqdm import tqdm
 
-from terrabyte.model.attend import Attention
+from TerraBytemodel.attend import Attention
 
 # helpers
 

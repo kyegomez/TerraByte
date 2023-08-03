@@ -12,8 +12,7 @@ from einops.layers.torch import Rearrange
 from torch import Tensor, nn
 from tqdm import tqdm
 
-# from TerraByte.model.attend import Attention
-from TerraByte.model.flash2 import FlashAttention as Attention
+from TerraByte.model.attend import Attend
 
 # helpers
 
@@ -125,6 +124,49 @@ def FeedForward(*, dim, mult = 4, dropout = 0.):
     )
 
 
+class RotaryEmbedding(nn.Module):
+    def __init__(self, dim, theta = 10000):
+        super().__init__()
+        inv_freq = 1.0 / (theta ** (torch.arange(0, dim, 2).float() / dim))
+        self.register_buffer("inv_freq", inv_freq)
+
+    @property
+    def device(self):
+        return next(self.buffers()).device
+
+    def forward(self, seq_len):
+        t = torch.arange(seq_len, device = self.device).type_as(self.inv_freq)
+        freqs = torch.einsum('i , j -> i j', t, self.inv_freq)
+        freqs = torch.cat((freqs, freqs), dim = -1)
+        return freqs
+
+def rotate_half(x):
+    x1, x2 = x.chunk(2, dim=-1)
+    return torch.cat((-x2, x1), dim=-1)
+
+def apply_rotary_pos_emb(pos, t):
+    return t * pos.cos() + rotate_half(t) * pos.sin()
+
+
+
+###### PATCHES
+
+
+class PatchEmbeddings(nn.Module):
+    def __init__(self, dim_in, dim_out, seq_len):
+        super().__init__()
+        self.embedding = nn.Sequential(
+            Rearrange('... rd -> ... (r d)'),
+            nn.LayerNorm(seq_len * dim_in),
+            nn.Linear(seq_len * dim_in, dim_out),
+            nn.LayerNorm(dim_out),
+        )
+    
+    def forward(self, x):
+        return self.embedding(x)
+    
+
+
 #Universal modality patch embdders => process all modalities
 """In this implementation, we create a UniversalPatchEmbedder class that takes a tuple of input dimensions,
 an output dimension, and a patch size as arguments. The class contains a list of embedders and modality embeddings. 
@@ -173,19 +215,50 @@ class UniversalPatchEmbedder(nn.Module):
         return x
     
 
-class PatchEmbeddings(nn.Module):
-    def __init__(self, dim_in, dim_out, seq_len):
+############## ATTENTION
+class Attention(nn.Module):
+    def __init__(
+        self,
+        *,
+        dim,
+        dim_head = 64,
+        heads = 8,
+        dropout = 0.,
+        flash = False
+    ):
         super().__init__()
-        self.embedding = nn.Sequential(
-            Rearrange('... rd -> ... (r d)'),
-            nn.LayerNorm(seq_len * dim_in),
-            nn.Linear(seq_len * dim_in, dim_out),
-            nn.LayerNorm(dim_out),
+        self.scale = dim_head ** -0.5
+        self.heads = heads
+        inner_dim = dim_head * heads
+
+        self.attend = Attend(
+            causal = True,
+            flash = flash,
+            dropout = dropout
         )
-    
-    def forward(self, x):
-        return self.embedding(x)
-    
+
+        self.dropout = nn.Dropout(dropout)
+        self.norm = RMSNorm(dim)
+        self.to_q = nn.Linear(dim, inner_dim, bias = False)
+        self.to_kv = nn.Linear(dim, dim_head * 2, bias = False)
+        self.to_out = nn.Linear(inner_dim, dim, bias = False)
+
+    def forward(self, x, rotary_emb = None):
+        h, device = self.heads, x.device
+
+        x = self.norm(x)
+        q, k, v = (self.to_q(x), *self.to_kv(x).chunk(2, dim = -1))
+        q = rearrange(q, 'b n (h d) -> b h n d', h = h)
+
+        if exists(rotary_emb):
+            q, k = map(lambda t: apply_rotary_pos_emb(rotary_emb, t), (q, k))
+
+        out = self.attend(q, k, v)
+
+        out = rearrange(out, 'b h n d -> b n (h d)')
+        return self.to_out(out)
+
+
 
 
 
@@ -211,7 +284,7 @@ class Transformer(nn.Module):
 
         for _ in range(layers):
             self.layers.append(nn.ModuleList([
-                Attention(dim = dim, dim_head = dim_head, heads = heads), #flash = flash_attn),
+                Attention(dim = dim, dim_head = dim_head, heads = heads, dropout = attn_dropout, flash = flash_attn),
                 FeedForward(dim = dim, mult = ff_mult, dropout = ff_dropout)
             ]))
 
@@ -222,7 +295,7 @@ class Transformer(nn.Module):
         attn_bias = self.alibi(n, n, device = x.device) if exists(self.alibi) else None
 
         for attn, ff in self.layers:
-            x = attn(token_shift(x), bias = attn_bias) + x
+            x = attn(token_shift(x), attn_bias = attn_bias) + x
             x = ff(token_shift(x)) + x
 
         return self.norm(x)

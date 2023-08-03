@@ -299,9 +299,9 @@ def to_single_heads(t, dim = 1):
     return tuple(head.unsqueeze(dim) for head in heads)
 
 class CascadingHeads(nn.Module):
-    def __init__(self, attend: Attend):
+    def __init__(self, Attention: Attention):
         super().__init__()
-        self.attend = attend
+        self.Attention = Attention
 
     def forward(
         self,
@@ -338,7 +338,7 @@ class CascadingHeads(nn.Module):
             if exists(prev_head_out):
                 h_q = h_q + prev_head_out
 
-            out, intermediates = self.attend(
+            out, intermediates = self.Attention(
                 h_q, h_k, h_v,
                 mask = h_mask,
                 attn_bias = h_attn_bias,

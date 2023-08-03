@@ -62,7 +62,7 @@ def onnx_create_causal_mask(i, j, device):
 
 # main class
 
-class Attend(nn.Module):
+class Attention(nn.Module):
     def __init__(
         self,
         *,

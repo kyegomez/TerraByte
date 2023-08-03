@@ -1,25 +1,18 @@
-import math
 import functools
+import math
 from itertools import zip_longest
+from typing import Tuple, Union
 
 import torch
 import torch.nn.functional as F
-from torch import nn, einsum
-
-from einops import rearrange, reduce, repeat, pack, unpack
-from einops.layers.torch import Rearrange
-
 from beartype import beartype
 from beartype.typing import Tuple, Union
-
-from TerraByte.model.attend import Attend
-
+from einops import pack, rearrange, repeat, unpack
+from einops.layers.torch import Rearrange
+from torch import Tensor, nn
 from tqdm import tqdm
 
-from torch import Tensor
-from typing import Tuple, Union
-from einops import rearrange, repeat
-
+from terrabyte.model.attend import Attention
 
 # helpers
 
@@ -193,45 +186,7 @@ class PatchEmbeddings(nn.Module):
         return self.embedding(x)
     
 
-class Attention(nn.Module):
-    def __init__(
-        self,
-        *,
-        dim,
-        dim_head = 64,
-        heads = 8,
-        dropout = 0.,
-        flash = False
-    ):
-        super().__init__()
-        self.scale = dim_head ** -0.5
-        self.heads = heads
-        inner_dim = dim_head * heads
 
-        self.attend = Attend(
-            causal = True,
-            flash = flash,
-            dropout = dropout
-        )
-
-        self.dropout = nn.Dropout(dropout)
-        self.norm = RMSNorm(dim)
-        self.to_q = nn.Linear(dim, inner_dim, bias = False)
-        self.to_kv = nn.Linear(dim, dim_head * 2, bias = False)
-        self.to_out = nn.Linear(inner_dim, dim, bias = False)
-
-    def forward(self, x, attn_bias = None):
-        h, device = self.heads, x.device
-
-        x = self.norm(x)
-        q, k, v = (self.to_q(x), *self.to_kv(x).chunk(2, dim = -1))
-        q = rearrange(q, 'b n (h d) -> b h n d', h = h)
-
-        out = self.attend(q, k, v, attn_bias = attn_bias)
-
-        out = rearrange(out, 'b h n d -> b n (h d)')
-        return self.to_out(out)
-    
 
 
 
@@ -247,7 +202,7 @@ class Transformer(nn.Module):
         ff_dropout = 0.,
         ff_mult = 4,
         rel_pos_bias = True,
-        flash_attn = False,
+        flash_attn = True,
     ):
         super().__init__()
         self.alibi = Alibi(heads = heads) if rel_pos_bias else None
@@ -406,7 +361,6 @@ class OmniMEGABYTE(nn.Module):
         print(f"self stages: {self.stages}")
 
         flattened_dims = ids.ndim == 2
-        ids_orig_ndim = ids.ndim
 
         if ids.numel() == 0:
             return self.forward_empty(ids.shape[0])
@@ -649,7 +603,6 @@ class MEGABYTE(nn.Module):
 
         assert ids.ndim in {2, self.stages + 1}
         flattened_dims = ids.ndim == 2
-        ids_orig_ndim = ids.ndim
 
         if ids.numel() == 0:
             return self.forward_empty(ids.shape[0])
@@ -883,7 +836,6 @@ class TerraByte(nn.Module):
 
         assert ids.ndim in {2, self.stages + 1}
         flattened_dims = ids.ndim == 2
-        ids_orig_ndim = ids.ndim
 
         if ids.numel() == 0:
             return self.forward_empty(ids.shape[0])

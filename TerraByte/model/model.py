@@ -12,7 +12,8 @@ from einops.layers.torch import Rearrange
 from torch import Tensor, nn
 from tqdm import tqdm
 
-from TerraByte.model.attend import Attention
+# from TerraByte.model.attend import Attention
+from TerraByte.model.flash2 import FlashAttention as Attention
 
 # helpers
 

@@ -65,6 +65,11 @@ class Attention(nn.Module):
         if exists(rotary_emb):
             q, k = map(lambda t: apply_rotary_pos_emb(rotary_emb, t), (q, k))
 
+        #ENSURE Q, K, V have atleast 4 dimensions
+        q = q.unsqueeze(0) if q.dim() < 4 else q
+        k = k.unsqueeze(0) if k.dim() < 4 else k
+        v = v.unsqueeze(0)if v.dim() < 4 else v
+
         out = self.attend(q, k, v, True, self.scale)  # Add causal and sm_scale parameters
 
         out = rearrange(out, 'b h n d -> b n (h d)')

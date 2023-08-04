@@ -85,7 +85,6 @@ from TerraByte.model.transformer import Transformer
 #         return self.to_out(out)
 
 
-
 class Attention(nn.Module):
     def __init__(self, dim, heads=8, dim_head=64, dropout=0.0):
         super().__init__()
@@ -103,7 +102,7 @@ class Attention(nn.Module):
         
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x, kv=None):
+    def forward(self, x, rotary_emb=None, kv=None):
         b, n, _, h, dh = *x.shape, self.heads, self.dim_head
         assert kv is None or kv.shape == x.shape, 'input and key-value pair must have the same shape'
 
@@ -113,6 +112,9 @@ class Attention(nn.Module):
 
         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=h), (q, k, v))
         
+        if exists(rotary_emb):
+            q, k = map(lambda t: apply_rotary_pos_emb(rotary_emb, t), (q, k))
+
         q = q * self.scale
 
         dots = torch.einsum('bhid,bhjd->bhij', q, k)  # assuming q, k for each token in the sequence is independent
@@ -127,6 +129,7 @@ class Attention(nn.Module):
 
         out = rearrange(out, 'b h n d -> b n (h d)')
         return self.to_out(out)
+
 
 
 class Transformer(nn.Module):

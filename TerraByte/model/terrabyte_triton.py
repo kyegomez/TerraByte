@@ -76,6 +76,7 @@ class Attention(nn.Module):
         v.type(torch.float32)
 
         # Ensure k has the correct shape
+        print(f'k shape: {k.shape}')
         k = k.view(q.shape[0], self.heads, -1, q.shape[-1])
         out = self.attend(q, k, v, True, self.scale)  # Add causal and sm_scale parameters
 

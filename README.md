@@ -3,6 +3,18 @@
 
 Terrabyte is an all-new transformer model designed to process byte sequences efficiently at massive scale. It can handle sequences with lengths up to 1 billion tokens, making it ideal for modeling source code and other byte-level data.
 
+-----
+## Hiring
+We're hiring:
+* Engineers, 
+* Researchers, 
+* Interns, 
+* And, salespeople 
+
+to work on cutting edge research like this and to democratize it, email me at with your story `kye@apac.ai`
+
+----------
+
 ```bash
 $ pip install TerraByte
 ```

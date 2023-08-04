@@ -105,9 +105,9 @@ class Attention(nn.Module):
         b, n, _, h, dh = *x.shape, self.heads, self.dim_head
         assert kv is None or kv.shape == x.shape, 'input and key-value pair must have the same shape'
 
-        q = self.to_q(x)
-        kv = default(kv, x)
-        k, v = self.to_kv(kv).chunk(2, dim=-1)
+        q = self.to_q(x).to(torch.float32)
+        kv = default(kv, x).to(torch.float32)
+        k, v = self.to_kv(kv).chunk(2, dim=-1).to(torch.float32)
 
         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=h), (q, k, v))
         
@@ -158,7 +158,6 @@ class Transformer(nn.Module):
         self.norm = RMSNorm(dim)
 
     def forward(self, x):
-        x.type(torch.float16)
         n = x.shape[-2]
         rotary_emb = self.rotary_emb(n) if exists(self.rotary_emb) else None
 

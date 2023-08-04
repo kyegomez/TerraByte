@@ -55,7 +55,7 @@ class Attention(nn.Module):
         self.to_q = nn.Linear(dim, inner_dim, bias = False)
         self.to_kv = nn.Linear(dim, dim_head * 2, bias = False)
         self.to_out = nn.Linear(inner_dim, dim, bias = False)
-
+    
     def forward(self, x, rotary_emb = None):
         h, device = self.heads, x.device
 
@@ -67,11 +67,10 @@ class Attention(nn.Module):
             q, k = map(lambda t: apply_rotary_pos_emb(rotary_emb, t), (q, k))
 
         #ENSURE Q, K, V have atleast 4 dimensions
-        # q = q.unsqueeze(0) if q.dim() < 4 else q
-        # k = k.unsqueeze(0) if k.dim() < 4 else k
-        # v = v.unsqueeze(0)if v.dim() < 4 else v
+        q = q.unsqueeze(0) if q.dim() < 4 else q
+        k = k.unsqueeze(0) if k.dim() < 4 else k
+        v = v.unsqueeze(0)if v.dim() < 4 else v
 
-        # k.view(q.shape[0], -1, self.heads, q.shape[-1])
         out = self.attend(q, k, v, True, self.scale)  # Add causal and sm_scale parameters
 
         out = rearrange(out, 'b h n d -> b n (h d)')

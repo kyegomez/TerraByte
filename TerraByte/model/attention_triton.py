@@ -69,7 +69,7 @@ def _fwd_kernel(
     hi = (start_m + 1) * BLOCK_M if IS_CAUSAL else N_CTX
     for start_n in range(lo, hi, BLOCK_N):
         # -- load k, v --
-        k = tl.load(K_block_ptr).to(tl.float16)
+        k = tl.load(K_block_ptr)
         v = tl.load(V_block_ptr)
         # -- compute qk ---
         qk = tl.zeros([BLOCK_M, BLOCK_N], dtype=tl.float32)

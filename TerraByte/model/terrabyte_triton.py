@@ -71,12 +71,17 @@ class Attention(nn.Module):
         k = k.unsqueeze(0) if k.dim() < 4 else k
         v = v.unsqueeze(0)if v.dim() < 4 else v
 
+        q.type(torch.float32)
+        k.type(torch.float32)
+        v.type(torch.float32)
+
+        # Ensure k has the correct shape
+        k = k.view(q.shape[0], -1, self.heads, q.shape[-1])
+
         out = self.attend(q, k, v, True, self.scale)  # Add causal and sm_scale parameters
 
         out = rearrange(out, 'b h n d -> b n (h d)')
         return self.to_out(out)
-
-
 
 class Transformer(nn.Module):
     def __init__(

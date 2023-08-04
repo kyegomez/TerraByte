@@ -75,6 +75,7 @@ $ python train.py
 ## Roadmap
 
 - Integrate sparse attention mechanisms like strided and dilated attention to handle sequences up to 1 billion tokens
+- Implement in triton for speed boost.
 - Pretrain model on diverse multi-modality byte level datasets
 - Add support for conditional generation 
 - Optimize inference speed and memory usage for deployment
@@ -82,4 +83,4 @@ $ python train.py
 - Release API for easy integration into downstream applications
 - Experiment with different model variants like autoregressive, autoencoder, seq2seq
 
-We plan to rapidly iterate on Terrabyte to scale up its context length and pretraining data size. By integrating sparse attention schemes and optimizing inference, our goal is to deploy Terrabyte for web-scale generative modeling. We aim to release Terrabyte models for integration into foundation models like Triton.
+We plan to rapidly iterate on Terrabyte to scale up its context length and pretraining data size. By integrating sparse attention schemes and optimizing inference, our goal is to deploy Terrabyte for web-scale generative modeling.

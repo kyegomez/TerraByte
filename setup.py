@@ -17,7 +17,9 @@ setup(
   ],
   install_requires=[
       'torch',
-      'zetascale'
+      'einops',
+      'triton',
+      'beartype'
   ],
   classifiers=[
     'Development Status :: 4 - Beta',

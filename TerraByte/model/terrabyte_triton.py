@@ -12,7 +12,6 @@ from torch import nn
 from tqdm import tqdm
 
 from TerraByte.model.attention import Attention
-# from TerraByte.model.attention_triton import attention
 from TerraByte.model.flash_triton import flash_attn_kvpacked_func, flash_attn_func
 from TerraByte.model.helpers import (
     FeedForward,
@@ -159,6 +158,7 @@ class Transformer(nn.Module):
         self.norm = RMSNorm(dim)
 
     def forward(self, x):
+        x.type(torch.float16)
         n = x.shape[-2]
         rotary_emb = self.rotary_emb(n) if exists(self.rotary_emb) else None
 

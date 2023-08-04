@@ -12,7 +12,8 @@ from torch import nn
 from tqdm import tqdm
 
 from TerraByte.model.attention import Attention
-from TerraByte.model.attention_triton import attention
+# from TerraByte.model.attention_triton import attention
+from TerraByte.model.flash_triton import flash_attn_func as attention
 from TerraByte.model.helpers import (
     FeedForward,
     default,

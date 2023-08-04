@@ -77,7 +77,7 @@ class Attention(nn.Module):
 
         # Ensure k has the correct shape
         print(f'k shape: {k.shape}')
-        k = k.view(q.shape[0], self.heads, -1, q.shape[-1])
+        k = k.view(1, self.heads, -1, q.shape[-1])
         out = self.attend(q, k, v, True, self.scale)  # Add causal and sm_scale parameters
 
         out = rearrange(out, 'b h n d -> b n (h d)')

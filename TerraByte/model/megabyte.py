@@ -26,12 +26,9 @@ from TerraByte.model.helpers import (
 from TerraByte.model.transformer import Transformer
 
 
+#regular megabyte no universal patch embedder
+class Megabyte(nn.Module):
 
-
-
-
-
-class TerraByte(nn.Module):
     @beartype
     def __init__(
         self,
@@ -46,12 +43,8 @@ class TerraByte(nn.Module):
         ff_mult = 4,
         ff_dropout = 0.,
         pad_id = 0,
-        pos_emb=False,
-        rel_pos_bias = True,
-        dilation_rate = None,
-        segment_size = None,
-        use_xpos = False,
-        use_rel_pos_bias = False,
+        rel_pos = False,
+        pos_emb = False,
         flash_attn = False
     ):
         super().__init__()
@@ -72,7 +65,7 @@ class TerraByte(nn.Module):
 
         self.max_seq_len = max_seq_len
 
-        self.start_tokens = nn.ParameterList([nn.Parameter(torch.randn(h_dim)) for h_dim, seq_len in zip(dim, max_seq_len)])  # noqa: E501
+        self.start_tokens = nn.ParameterList([nn.Parameter(torch.randn(h_dim)) for h_dim, seq_len in zip(dim, max_seq_len)])
         self.pos_embs = nn.ModuleList([nn.Embedding(seq_len, h_dim) for h_dim, seq_len in zip(dim, max_seq_len)]) if pos_emb else None
 
         self.token_embs = nn.ModuleList([])
@@ -103,7 +96,7 @@ class TerraByte(nn.Module):
                 attn_dropout = attn_dropout,
                 ff_dropout = ff_dropout,
                 ff_mult = ff_mult,
-                # rel_pos_bias = rel_pos_bias, 
+                rel_pos = rel_pos,
                 flash_attn = flash_attn
             ))
 
@@ -264,4 +257,3 @@ class TerraByte(nn.Module):
         )
 
         return loss
-    

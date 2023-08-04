@@ -105,9 +105,9 @@ class Attention(nn.Module):
         b, n, _, h, dh = *x.shape, self.heads, self.dim_head
         assert kv is None or kv.shape == x.shape, 'input and key-value pair must have the same shape'
 
-        q = self.to_q(x).to(torch.float32)
-        kv = default(kv, x).to(torch.float32)
-        k, v = self.to_kv(kv).chunk(2, dim=-1).to(torch.float32)
+        q = self.to_q(x)
+        kv = default(kv, x)
+        k, v = self.to_kv(kv).chunk(2, dim=-1)
 
         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=h), (q, k, v))
         
@@ -120,6 +120,10 @@ class Attention(nn.Module):
 
         attn = dots.softmax(dim=-1)
         attn = self.dropout(attn)
+
+        q.to(torch.float32)
+        k.to(torch.float32)
+        v.to(torch.float32)
         
         if kv is not None:
             out = flash_attn_kvpacked_func(q, torch.stack([k, v], dim=2), attn)

@@ -120,10 +120,6 @@ class Attention(nn.Module):
 
         attn = dots.softmax(dim=-1)
         attn = self.dropout(attn)
-
-        q.to(torch.float32)
-        k.to(torch.float32)
-        v.to(torch.float32)
         
         if kv is not None:
             out = flash_attn_kvpacked_func(q, torch.stack([k, v], dim=2), attn)

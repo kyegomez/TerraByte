@@ -122,17 +122,20 @@ class Attention(nn.Module):
         attn = self.dropout(attn)
         
         if kv is not None:
-            # Convert q to float16 before passing it to the flash_attn_kvpacked_func
+            # Convert q, k, and v to float16 before passing them to the flash_attn_kvpacked_func
             q = q.half()
+            k = k.half()
+            v = v.half()
             out = flash_attn_kvpacked_func(q, torch.stack([k, v], dim=2), attn)
         else:
-            # Convert q to float16 before passing it to the flash_attn_func
+            # Convert q, k, and v to float16 before passing them to the flash_attn_func
             q = q.half()
+            k = k.half()
+            v = v.half()
             out = flash_attn_func(q, k, v, attn)
 
         out = rearrange(out, 'b h n d -> b n (h d)')
         return self.to_out(out)
-
 
 
 class Transformer(nn.Module):

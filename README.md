@@ -1,30 +1,17 @@
-<img src="./MEGABYTE.png" width="450px"></img>
 
-## MEGABYTE - Pytorch
-
-Implementation of <a href="https://arxiv.org/abs/2305.07185">MEGABYTE</a> Predicting Multi-Modal Billion-byte Sequences with Multiscale Transformers, in Pytorch.
-
-
-
-<a href="https://github.com/lucidrains/simple-hierarchical-transformer">Similar independent research that is a further generalization</a>
-
-## Appreciation
-
-- <a href="https://stability.ai/">Stability</a> and <a href="https://huggingface.co/">🤗 Huggingface</a> for the generous sponsorship to work on and open source cutting edge artificial intelligence research
-
-## Install
+## Terrabyte
 
 ```bash
-$ pip install MEGABYTE-pytorch
+$ pip install TerraByte
 ```
 
 ## Usage
 
 ```python
 import torch
-from MEGABYTE_pytorch import MEGABYTE
+from terrabyte import TerraByte 
 
-model = MEGABYTE(
+model = TerraByte(
     num_tokens = 16000,             # number of tokens
     dim = (512, 256),               # transformer model dimension (512 for coarsest, 256 for fine in this example)
     max_seq_len = (1024, 4),        # sequence length for global and then local. this can be more than 2
@@ -61,64 +48,3 @@ $ python train.py
 # Roadmap 
 
 * Integate new iteration of dilated attention and increase context length by alot
-
-## Citations
-
-```bibtex
-@misc{yu2023megabyte,
-    title   = {MEGABYTE: Predicting Million-byte Sequences with Multiscale Transformers}, 
-    author  = {Lili Yu and Dániel Simig and Colin Flaherty and Armen Aghajanyan and Luke Zettlemoyer and Mike Lewis},
-    year    = {2023},
-    eprint  = {2305.07185},
-    archivePrefix = {arXiv},
-    primaryClass = {cs.LG}
-}
-```
-
-```bibtex
-@misc{https://doi.org/10.48550/arxiv.2302.01327,
-    doi     = {10.48550/ARXIV.2302.01327},
-    url     = {https://arxiv.org/abs/2302.01327},
-    author  = {Kumar, Manoj and Dehghani, Mostafa and Houlsby, Neil},
-    title   = {Dual PatchNorm},
-    publisher = {arXiv},
-    year    = {2023},
-    copyright = {Creative Commons Attribution 4.0 International}
-}
-```
-
-```bibtex
-@inproceedings{dao2022flashattention,
-    title   = {Flash{A}ttention: Fast and Memory-Efficient Exact Attention with {IO}-Awareness},
-    author  = {Dao, Tri and Fu, Daniel Y. and Ermon, Stefano and Rudra, Atri and R{\'e}, Christopher},
-    booktitle = {Advances in Neural Information Processing Systems},
-    year    = {2022}
-}
-```
-
-```bibtex
-@misc{press2021ALiBi,
-    title   = {Train Short, Test Long: Attention with Linear Biases Enable Input Length Extrapolation},
-    author  = {Ofir Press and Noah A. Smith and Mike Lewis},
-    year    = {2021},
-    url     = {https://ofir.io/train_short_test_long.pdf}
-}
-```
-
-```bibtex
-@software{peng_bo_2021_5196578,
-    author    = {PENG Bo},
-    title     = {BlinkDL/RWKV-LM: 0.01},
-    month     = {aug},
-    year      = {2021},
-    publisher = {Zenodo},
-    version   = {0.01},
-    doi       = {10.5281/zenodo.5196578},
-    url       = {https://doi.org/10.5281/zenodo.5196578}
-}
-```
-
-
-# Todo:
-
-* Implement Optimus prime stacked attention with flash attention 2.0

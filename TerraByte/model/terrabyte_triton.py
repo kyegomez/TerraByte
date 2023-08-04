@@ -149,7 +149,7 @@ class Transformer(nn.Module):
 
         for _ in range(layers):
             self.layers.append(nn.ModuleList([
-                Attention(dim = dim, dim_head = dim_head, heads = heads, dropout = attn_dropout) #flash = flash_attn),
+                Attention(dim = dim, dim_head = dim_head, heads = heads, dropout = attn_dropout), #flash = flash_attn),
                 FeedForward(dim = dim, mult = ff_mult, dropout = ff_dropout)
             ]))
 

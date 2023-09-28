@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "TerraByte"
+version = "0.1.7"
+description = "TerraByte - Pytorch"
+authors = ["Kye Gomez <kye@apac.ai>"]
+license = "MIT"
+packages = [
+    { include = "terra_byte" },
+    { include = "terra_byte/**/*.py" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+torch = "^1.9.0"
+einops = "^0.3.0"
+triton = "^1.0.0"
+beartype = "^0.8.1"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+

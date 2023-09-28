@@ -7,8 +7,6 @@ from einops.layers.torch import Rearrange
 from torch import Tensor, nn
 
 
-
-
 class PatchEmbeddings(nn.Module):
     def __init__(self, dim_in, dim_out, seq_len):
         super().__init__()
@@ -23,16 +21,20 @@ class PatchEmbeddings(nn.Module):
         return self.embedding(x)
     
 
-
-#Universal modality patch embdders => process all modalities
-"""In this implementation, we create a UniversalPatchEmbedder class that takes a tuple of input dimensions,
-an output dimension, and a patch size as arguments. The class contains a list of embedders and modality embeddings. 
-In the forward method, we select the appropriate embedder based on the
-modality and apply it to the input. We then add the modality embeddings to the output.
-"""
-
 class UniversalPatchEmbedder(nn.Module):
-    def __init__(self, input_dims: Tuple[int], output_dim: int, patch_size: int):
+
+    #Universal modality patch embdders => process all modalities
+    """In this implementation, we create a UniversalPatchEmbedder class that takes a tuple of input dimensions,
+    an output dimension, and a patch size as arguments. The class contains a list of embedders and modality embeddings. 
+    In the forward method, we select the appropriate embedder based on the
+    modality and apply it to the input. We then add the modality embeddings to the output.
+    """
+    def __init__(
+        self, 
+        input_dims: Tuple[int], 
+        output_dim: int, 
+        patch_size: int
+    ):
         super().__init__()
         self.patch_size = patch_size
         self.embedders = nn.ModuleList([nn.Linear(dim, output_dim) for dim in input_dims])

@@ -1,8 +1,9 @@
+
+
 from itertools import zip_longest
 from typing import Tuple, Union
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 from beartype import beartype
 from beartype.typing import Tuple, Union
@@ -11,175 +12,26 @@ from einops.layers.torch import Rearrange
 from torch import nn
 from tqdm import tqdm
 
-from TerraByte.model.attention import Attention
-from TerraByte.model.flash_triton import flash_attn_kvpacked_func, flash_attn_func
-from TerraByte.model.helpers import (
-    FeedForward,
-    default,
-    RMSNorm,
-    RotaryEmbedding,
-    apply_rotary_pos_emb,
+from terra_byte.model.helpers import (
     cast_tuple,
+    default,
     exists,
     gumbel_sample,
     pack_one,
     reduce_mult,
     remainder_to_mult,
-    token_shift,
     top_k,
     unpack_one,
 )
-from TerraByte.model.transformer import Transformer
-
-
-# class Attention(nn.Module):
-#     def __init__(
-#         self,
-#         *,
-#         dim,
-#         dim_head = 64,
-#         heads = 8,
-#         dropout = 0.,
-#         flash = False
-#     ):
-#         super().__init__()
-#         self.scale = dim_head ** -0.5
-#         self.heads = heads
-#         inner_dim = dim_head * heads
-
-#         self.attend = attention  # Replace Attend with _attention
-
-#         self.dropout = nn.Dropout(dropout)
-#         self.norm = RMSNorm(dim)
-#         self.to_q = nn.Linear(dim, inner_dim, bias = False)
-#         self.to_kv = nn.Linear(dim, dim_head * 2, bias = False)
-#         self.to_out = nn.Linear(inner_dim, dim, bias = False)
-    
-#     def forward(self, x, rotary_emb = None):
-#         h, device = self.heads, x.device
-
-#         x = self.norm(x)
-#         q, k, v = (self.to_q(x), *self.to_kv(x).chunk(2, dim = -1))
-#         q = rearrange(q, 'b n (h d) -> b h n d', h = h)
-
-#         if exists(rotary_emb):
-#             q, k = map(lambda t: apply_rotary_pos_emb(rotary_emb, t), (q, k))
-
-#         #ENSURE Q, K, V have atleast 4 dimensions
-#         q = q.unsqueeze(0) if q.dim() < 4 else q
-#         k = k.unsqueeze(0) if k.dim() < 4 else k
-#         v = v.unsqueeze(0)if v.dim() < 4 else v
-
-#         q.type(torch.float32)
-#         k.type(torch.float32)
-#         v.type(torch.float32)
-
-#         # Ensure k has the correct shape
-#         print(f'k shape: {k.shape}')
-#         k = k.view(1, self.heads, -1, q.shape[-1])
-
-#         out = self.attend(q, k, v, True, self.scale)  # Add causal and sm_scale parameters
-
-#         out = rearrange(out, 'b h n d -> b n (h d)')
-#         return self.to_out(out)
-
-
-class Attention(nn.Module):
-    def __init__(self, dim, heads=8, dim_head=64, dropout=0.0):
-        super().__init__()
-
-        self.dim = dim
-        self.heads = heads
-        self.dim_head = dim_head
-
-        self.scale = dim_head ** -0.5
-        inner_dim = dim_head * heads
-
-        self.to_q = nn.Linear(dim, inner_dim, bias=False)
-        self.to_kv = nn.Linear(dim, inner_dim * 2, bias=False)
-        self.to_out = nn.Linear(inner_dim, dim)
-        
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x, rotary_emb=None, kv=None):
-        b, n, _, h, dh = *x.shape, self.heads, self.dim_head
-        assert kv is None or kv.shape == x.shape, 'input and key-value pair must have the same shape'
-
-        q = self.to_q(x)
-        kv = default(kv, x)
-        k, v = self.to_kv(kv).chunk(2, dim=-1)
-
-        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=h), (q, k, v))
-        
-        if exists(rotary_emb):
-            q, k = map(lambda t: apply_rotary_pos_emb(rotary_emb, t), (q, k))
-
-        q = q * self.scale
-
-        dots = torch.einsum('bhid,bhjd->bhij', q, k)  # assuming q, k for each token in the sequence is independent
-
-        attn = dots.softmax(dim=-1)
-        attn = self.dropout(attn)
-        
-        if kv is not None:
-            # Convert q, k, and v to float16 before passing them to the flash_attn_kvpacked_func
-            q = q.half()
-            k = k.half()
-            v = v.half()
-            out = flash_attn_kvpacked_func(q, torch.stack([k, v], dim=2), attn)
-        else:
-            # Convert q, k, and v to float16 before passing them to the flash_attn_func
-            q = q.half()
-            k = k.half()
-            v = v.half()
-            out = flash_attn_func(q, k, v, attn)
-
-        out = rearrange(out, 'b h n d -> b n (h d)')
-        return self.to_out(out)
-
-
-class Transformer(nn.Module):
-    def __init__(
-        self,
-        *,
-        dim,
-        layers,
-        dim_head = 64,
-        heads = 8,
-        attn_dropout = 0.,
-        ff_dropout = 0.,
-        ff_mult = 4,
-        rel_pos = True,
-        flash_attn = False
-    ):
-        super().__init__()
-        self.rotary_emb = RotaryEmbedding(dim_head) if rel_pos else None
-        self.layers = nn.ModuleList([])
-
-        for _ in range(layers):
-            self.layers.append(nn.ModuleList([
-                Attention(dim = dim, dim_head = dim_head, heads = heads, dropout = attn_dropout), #flash = flash_attn),
-                FeedForward(dim = dim, mult = ff_mult, dropout = ff_dropout)
-            ]))
-
-        self.norm = RMSNorm(dim)
-
-    def forward(self, x):
-        n = x.shape[-2]
-        rotary_emb = self.rotary_emb(n) if exists(self.rotary_emb) else None
-
-        for attn, ff in self.layers:
-            x = attn(token_shift(x), rotary_emb = rotary_emb) + x
-            x = ff(token_shift(x)) + x
-
-        return self.norm(x)
+from terra_byte.model.transformer import Transformer
 
 
 
 
 
 
-class TerraByteTriton(nn.Module):
+
+class TerraByte(nn.Module):
     @beartype
     def __init__(
         self,

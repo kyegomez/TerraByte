@@ -1,4 +1,4 @@
-from TerraByte.model.terrabyte_triton import TerraByteTriton as TerraByte
+from terra_byte.model.terrabyte_triton import TerraByteTriton as TerraByte
 
 import random
 import tqdm

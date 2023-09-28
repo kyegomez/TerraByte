@@ -1,4 +1,5 @@
 
+
 from itertools import zip_longest
 from typing import Tuple, Union
 
@@ -11,8 +12,9 @@ from einops.layers.torch import Rearrange
 from torch import nn
 from tqdm import tqdm
 
-from TerraByte.model.helpers import (
+from terra_byte.model.helpers import (
     cast_tuple,
+    default,
     exists,
     gumbel_sample,
     pack_one,
@@ -21,12 +23,11 @@ from TerraByte.model.helpers import (
     top_k,
     unpack_one,
 )
-from TerraByte.model.patches import UniversalPatchEmbedder
-from TerraByte.model.transformer import Transformer
+from terra_byte.model.transformer import Transformer
 
 
-# main class
-class OmniMEGABYTE(nn.Module):
+#regular megabyte no universal patch embedder
+class Megabyte(nn.Module):
 
     @beartype
     def __init__(
@@ -42,7 +43,8 @@ class OmniMEGABYTE(nn.Module):
         ff_mult = 4,
         ff_dropout = 0.,
         pad_id = 0,
-        rel_pos_bias = True,
+        rel_pos = False,
+        pos_emb = False,
         flash_attn = False
     ):
         super().__init__()
@@ -61,25 +63,26 @@ class OmniMEGABYTE(nn.Module):
 
         coarsest_dim, *_, fine_dim = dim
 
-        self.token_emb = nn.Embedding(num_tokens, fine_dim)
-
         self.max_seq_len = max_seq_len
 
         self.start_tokens = nn.ParameterList([nn.Parameter(torch.randn(h_dim)) for h_dim, seq_len in zip(dim, max_seq_len)])
-        self.pos_embs = nn.ModuleList([nn.Embedding(seq_len, h_dim) for h_dim, seq_len in zip(dim, max_seq_len)])
+        self.pos_embs = nn.ModuleList([nn.Embedding(seq_len, h_dim) for h_dim, seq_len in zip(dim, max_seq_len)]) if pos_emb else None
 
-        # self.patch_embedders = nn.ModuleList([nn.Sequential(
-        #     Rearrange('... r d -> ... (r d)'),
-        #     nn.LayerNorm(seq_len * dim_in),
-        #     nn.Linear(seq_len * dim_in, dim_out),
-        #     nn.LayerNorm(dim_out)
-        # ) for dim_in, dim_out, seq_len in zip(dim[1:], dim[:-1], max_seq_len[1:])])
+        self.token_embs = nn.ModuleList([])
 
-        #v2
-        input_dims = (dim[1], dim[0], max_seq_len[1])
-        self.patch_embedders = UniversalPatchEmbedder(input_dims, dim[0], max_seq_len[1])
+        patch_size = 1
+        self.token_embs.append(nn.Embedding(num_tokens, fine_dim))
 
-        #------->
+        for dim_out, seq_len in zip(reversed(dim[:-1]), reversed(max_seq_len[1:])):
+            patch_size *= seq_len
+
+            self.token_embs.append(nn.Sequential(
+                nn.Embedding(num_tokens, fine_dim),
+                Rearrange('... r d -> ... (r d)'),
+                nn.LayerNorm(patch_size * fine_dim),
+                nn.Linear(patch_size * fine_dim, dim_out),
+                nn.LayerNorm(dim_out)
+            ))
 
         self.transformers = nn.ModuleList([])
         self.to_next_transformer_projections = nn.ModuleList([])
@@ -93,7 +96,7 @@ class OmniMEGABYTE(nn.Module):
                 attn_dropout = attn_dropout,
                 ff_dropout = ff_dropout,
                 ff_mult = ff_mult,
-                rel_pos_bias = rel_pos_bias,
+                rel_pos = rel_pos,
                 flash_attn = flash_attn
             ))
 
@@ -101,8 +104,9 @@ class OmniMEGABYTE(nn.Module):
 
             if exists(next_h_dim) and next_h_dim != dim:
                 proj = nn.Sequential(
+                    Rearrange('b ... d -> b (...) d'),
                     nn.Linear(h_dim, next_h_dim * next_seq_len),
-                    Rearrange('... (n d) -> (...) n d', n = next_seq_len)
+                    Rearrange('b m (n d) -> (b m) n d', n = next_seq_len)
                 )
 
             self.to_next_transformer_projections.append(proj)
@@ -145,14 +149,10 @@ class OmniMEGABYTE(nn.Module):
 
         return self.to_logits(tokens)
 
-    def forward(self, ids, modality,  return_loss = False):
+    def forward(self, ids, return_loss = False):
         batch = ids.shape[0]
 
-        print(f'ids shape: {ids.shape[0]}')
-
         assert ids.ndim in {2, self.stages + 1}
-        print(f"self stages: {self.stages}")
-
         flattened_dims = ids.ndim == 2
 
         if ids.numel() == 0:
@@ -174,27 +174,27 @@ class OmniMEGABYTE(nn.Module):
         assert prec_dims[0] <= self.max_seq_len[0], 'the first dimension of your axial autoregressive transformer must be less than the first tuple element of max_seq_len (like any autoregressive transformer)'
         assert tuple(prec_dims[1:]) == tuple(self.max_seq_len[1:]), 'all subsequent dimensions must match exactly'
 
-        # get token embeddings
-
-        tokens = self.token_emb(ids)
-
         # get tokens for all hierarchical stages, reducing by appropriate dimensions
         # and adding the absolute positional embeddings
 
         tokens_at_stages = []
-        reduced_tokens = tokens
+        pos_embs = default(self.pos_embs, (None,))
 
-        patch_embedders_list = [self.patch_embedders]
-
-        for ind, pos_emb, patch_emb in zip(range(len(prec_dims)), reversed(self.pos_embs), reversed(patch_embedders_list)):
+        for ind, pos_emb, token_emb in zip_longest(range(len(prec_dims)), pos_embs, self.token_embs):
             is_first = ind == 0
 
-            if not is_first:
-                reduced_tokens = patch_emb(reduced_tokens, modality)
+            tokens = token_emb(ids)
 
-            positions = pos_emb(torch.arange(reduced_tokens.shape[-2], device=device))
-            tokens_with_position = reduced_tokens + positions
-            tokens_at_stages.insert(0, tokens_with_position)
+            if exists(pos_emb):
+                positions = pos_emb(torch.arange(tokens.shape[-2], device = device))
+                tokens = tokens + positions
+
+            tokens_at_stages.insert(0, tokens)
+
+            if is_first:
+                continue
+
+            ids = rearrange(ids, '... m n -> ... (m n)')
 
         # the un-pixelshuffled representations of the previous hierarchy, starts with None
 
@@ -204,27 +204,19 @@ class OmniMEGABYTE(nn.Module):
 
         for stage_start_tokens, stage_tokens, transformer, proj in zip(self.start_tokens, tokens_at_stages, self.transformers, self.to_next_transformer_projections):
             stage_tokens, ps = pack_one(stage_tokens, '* n d')
-
-            stage_start_tokens = repeat(stage_start_tokens, 'f -> b 1 f', b=stage_tokens.shape[0])
-
-            #update the dimensions of the stage_start_tokens tensor
-            stage_start_tokens = stage_start_tokens[..., :stage_tokens.shape[-1]]
-
-            # Print the shapes of the tensors before concatenating
-            print(f"stage_start_tokens shape: {stage_start_tokens.shape}")
-            print(f"stage_tokens shape: {stage_tokens.shape}")
+            stage_start_tokens = repeat(stage_start_tokens, 'f -> b 1 f', b = stage_tokens.shape[0])
 
             # concat start token
 
             stage_tokens = torch.cat((
                 stage_start_tokens,
                 stage_tokens,
-            ), dim=-2)
+            ), dim = -2)
 
             # sum the previous hierarchy's representation
 
             if exists(prev_stage_tokens_repr):
-                prev_stage_tokens_repr = F.pad(prev_stage_tokens_repr, (0, 0, 1, 0), value=0.)
+                prev_stage_tokens_repr = F.pad(prev_stage_tokens_repr, (0, 0, 1, 0), value = 0.)
                 stage_tokens = stage_tokens + prev_stage_tokens_repr
 
             attended = transformer(stage_tokens)
@@ -265,4 +257,3 @@ class OmniMEGABYTE(nn.Module):
         )
 
         return loss
-

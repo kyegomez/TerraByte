@@ -6,7 +6,7 @@ from torch import einsum
 from torch import nn
 from torch.testing import assert_allclose
 
-from TerraByte.model.attend import Attend, FlashAttention, EfficientAttentionConfig
+from terra_byte.model.attend import Attend, FlashAttention, EfficientAttentionConfig
 
 
 class TestAttending(unittest.TestCase):

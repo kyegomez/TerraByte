@@ -1,6 +1,6 @@
 import torch.nn as nn
-from TerraByte.model.helpers import RotaryEmbedding, FeedForward, RMSNorm, token_shift, exists
-from TerraByte.model.attention import Attention
+from terra_byte.model.helpers import RotaryEmbedding, FeedForward, RMSNorm, token_shift, exists
+from terra_byte.model.attention import Attention
 
 class Transformer(nn.Module):
     def __init__(

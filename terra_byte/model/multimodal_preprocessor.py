@@ -679,12 +679,13 @@ class IMUPreprocessor(VerboseNNModule):
     
         
 
-from PIL import Image
 import io
-import cv2
 
+import cv2
 import numpy as np
+from PIL import Image
 from pydub import AudioSegment
+
 
 class ImageToByte:
     def __init__(self, format="JPEG"):

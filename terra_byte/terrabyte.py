@@ -3,16 +3,17 @@ import torch
 
 
 class TerraByte:
-    def __init__(self,
-                num_tokens = 16000,
-                dim = (512, 256),   
-                dilation_rate=4, 
-                segment_size=2,
-                max_seq_len = (1024, 4), 
-                depth = (6, 4),          
-                dim_head = 64,           
-                heads = 8,  
-                 ):
+    def __init__(
+        self,
+        num_tokens = 16000,
+        dim = (512, 256),   
+        dilation_rate=4, 
+        segment_size=2,
+        max_seq_len = (1024, 4), 
+        depth = (6, 4),          
+        dim_head = 64,           
+        heads = 8,  
+    ):
         self.model = TerraByte(
             num_tokens=num_tokens,
             dim=dim,

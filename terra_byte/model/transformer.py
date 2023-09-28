@@ -1,6 +1,14 @@
 import torch.nn as nn
-from terra_byte.model.helpers import RotaryEmbedding, FeedForward, RMSNorm, token_shift, exists
-from terra_byte.model.attention import Attention
+from mgqa.attention import MGQA as Attention
+
+from terra_byte.model.helpers import (
+    FeedForward,
+    RMSNorm,
+    RotaryEmbedding,
+    exists,
+    token_shift,
+)
+
 
 class Transformer(nn.Module):
     def __init__(
@@ -22,8 +30,19 @@ class Transformer(nn.Module):
 
         for _ in range(layers):
             self.layers.append(nn.ModuleList([
-                Attention(dim = dim, dim_head = dim_head, heads = heads, dropout = attn_dropout, flash = flash_attn),
-                FeedForward(dim = dim, mult = ff_mult, dropout = ff_dropout)
+                Attention(
+                    dim = dim, 
+                    dim_head = dim_head, 
+                    heads = heads, 
+                    dropout = attn_dropout, 
+                    flash = flash_attn
+                ),
+                
+                FeedForward(
+                    dim = dim, 
+                    mult = ff_mult, 
+                    dropout = ff_dropout
+                )
             ]))
 
         self.norm = RMSNorm(dim)
@@ -33,7 +52,7 @@ class Transformer(nn.Module):
         rotary_emb = self.rotary_emb(n) if exists(self.rotary_emb) else None
 
         for attn, ff in self.layers:
-            x = attn(token_shift(x), rotary_emb = rotary_emb) + x
+            x = attn(token_shift(x)) + x
             x = ff(token_shift(x)) + x
 
         return self.norm(x)

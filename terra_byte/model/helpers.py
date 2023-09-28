@@ -9,7 +9,6 @@ import torch.nn.functional as F
 from einops import pack, rearrange, unpack
 from torch import nn
 
-
 # helpers
 
 def exists(val):
@@ -253,7 +252,11 @@ def FeedForward(*, dim, mult = 4, dropout = 0.):
 
 
 class RotaryEmbedding(nn.Module):
-    def __init__(self, dim, theta = 10000):
+    def __init__(
+        self, 
+        dim, 
+        theta = 10000
+    ):
         super().__init__()
         inv_freq = 1.0 / (theta ** (torch.arange(0, dim, 2).float() / dim))
         self.register_buffer("inv_freq", inv_freq)

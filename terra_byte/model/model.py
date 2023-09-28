@@ -1,5 +1,3 @@
-
-
 from itertools import zip_longest
 from typing import Tuple, Union
 
@@ -26,11 +24,6 @@ from terra_byte.model.helpers import (
 from terra_byte.model.transformer import Transformer
 
 
-
-
-
-
-
 class TerraByte(nn.Module):
     @beartype
     def __init__(
@@ -47,11 +40,6 @@ class TerraByte(nn.Module):
         ff_dropout = 0.,
         pad_id = 0,
         pos_emb=False,
-        rel_pos_bias = True,
-        dilation_rate = None,
-        segment_size = None,
-        use_xpos = False,
-        use_rel_pos_bias = False,
         flash_attn = False
     ):
         super().__init__()
@@ -72,8 +60,21 @@ class TerraByte(nn.Module):
 
         self.max_seq_len = max_seq_len
 
-        self.start_tokens = nn.ParameterList([nn.Parameter(torch.randn(h_dim)) for h_dim, seq_len in zip(dim, max_seq_len)])  # noqa: E501
-        self.pos_embs = nn.ModuleList([nn.Embedding(seq_len, h_dim) for h_dim, seq_len in zip(dim, max_seq_len)]) if pos_emb else None
+        self.start_tokens = nn.ParameterList(
+            [
+                nn.Parameter(
+                    torch.randn(h_dim)) for h_dim, seq_len in zip(
+                        dim, 
+                        max_seq_len
+                    )
+            ]
+        )  # noqa: E501
+
+        self.pos_embs = nn.ModuleList(
+            [
+                nn.Embedding(seq_len, h_dim) for h_dim, seq_len in zip(dim, max_seq_len)
+            ]
+        ) if pos_emb else None
 
         self.token_embs = nn.ModuleList([])
 
@@ -94,7 +95,12 @@ class TerraByte(nn.Module):
         self.transformers = nn.ModuleList([])
         self.to_next_transformer_projections = nn.ModuleList([])
 
-        for h_dim, next_h_dim, stage_depth, next_seq_len in zip_longest(dim, dim[1:], depth, max_seq_len[1:]):
+        for h_dim, next_h_dim, stage_depth, next_seq_len in zip_longest(
+            dim, 
+            dim[1:], 
+            depth, 
+            max_seq_len[1:]
+        ):
             self.transformers.append(Transformer(
                 dim = h_dim,
                 layers = stage_depth,
@@ -121,12 +127,22 @@ class TerraByte(nn.Module):
         self.to_logits = nn.Linear(fine_dim, num_tokens)
         self.pad_id = pad_id
 
-    def generate(self, prime = None, filter_thres = 0.9, temperature = 1., default_batch_size = 1):
+    def generate(
+        self, 
+        prime = None, 
+        filter_thres = 0.9, 
+        temperature = 1., 
+        default_batch_size = 1
+    ):
         total_seq_len = reduce_mult(self.max_seq_len)
         device = next(self.parameters()).device
 
         if not exists(prime):
-            prime = torch.empty((default_batch_size, 0), dtype = torch.long, device = device)
+            prime = torch.empty(
+                (default_batch_size, 0), 
+                dtype = torch.long, 
+                device = device
+            )
 
         seq = prime
         batch = seq.shape[0]
@@ -145,7 +161,11 @@ class TerraByte(nn.Module):
 
         prev_stage_tokens_repr = None
 
-        for stage_start_tokens, transformer, proj in zip(self.start_tokens, self.transformers, self.to_next_transformer_projections):
+        for stage_start_tokens, transformer, proj in zip(
+            self.start_tokens, 
+            self.transformers, 
+            self.to_next_transformer_projections
+        ):
             tokens = repeat(stage_start_tokens, 'd -> b 1 d', b = batch_size)
 
             if exists(prev_stage_tokens_repr):

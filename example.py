@@ -4,9 +4,7 @@ from terra_byte import TerraByte
 model = TerraByte(
     num_tokens = 16000,
     dim = (512, 256),   
-    dim_head=64,
-    dilation_rate=4, 
-    segment_size=2,
+    dim_head=64, 
     max_seq_len = (1024, 4), 
     depth = (6, 4),       
     heads = 8,  

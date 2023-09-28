@@ -26,7 +26,7 @@ from terra_byte.model.transformer import Transformer
 
 
 # main class
-class OmniMEGABYTE(nn.Module):
+class OmniByte(nn.Module):
 
     @beartype
     def __init__(

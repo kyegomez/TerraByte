@@ -35,7 +35,7 @@ from transformers import (
 )
 
 from terra_byte.model import TerraByte, Transformer
-from TerraByteutils import StableAdamWUnfused
+from terra_byte.utils import StableAdamWUnfused
 
 # import bitsandbytes as bnb
 

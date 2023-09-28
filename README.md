@@ -25,7 +25,7 @@ $ pip install TerraByte
 
 ```python
 import torch
-from terrabyte import TerraByte 
+from terra_byte. import TerraByte 
 
 model = TerraByte(
     num_tokens = 16000,             # number of tokens

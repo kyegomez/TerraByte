@@ -8,7 +8,12 @@ from torch import Tensor, nn
 
 
 class PatchEmbeddings(nn.Module):
-    def __init__(self, dim_in, dim_out, seq_len):
+    def __init__(
+            self, 
+            dim_in, 
+            dim_out, 
+            seq_len
+        ):
         super().__init__()
         self.embedding = nn.Sequential(
             Rearrange('... rd -> ... (r d)'),

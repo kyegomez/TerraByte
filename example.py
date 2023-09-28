@@ -17,7 +17,9 @@ loss.backward()
 
 # then after much training
 logits = model(x)
+print(logits)
 
 # and sample from the logits accordingly
 # or you can use the generate function
 sampled = model.generate(temperature = 0.9, filter_thres = 0.9) # (1, 1024, 4)
+print(sampled)
